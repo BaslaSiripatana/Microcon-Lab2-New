@@ -59,7 +59,6 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim8;
-
 /* USER CODE BEGIN PV */
 
 //For Read Real_positionM1, set_point
@@ -74,6 +73,7 @@ float VfeedbackM1 = 0;
 float VfeedbackM2 = 0;
 uint16_t Raw_positionM2 = 0;
 float positionM2 = 0;
+uint16_t QEIReadRaw = 0;
 
 //For create PWM
 float duty_cycle = 0;
@@ -101,6 +101,7 @@ static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
 float PlantSimulation(float VIn) ;
 void PWM_Mode1();
+void PWM_Mode2();
 void Read_setpoint_positionM1_Mode1();
 
 //Received UART DMA
@@ -169,8 +170,8 @@ int main(void)
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 
   //Output Compare for PWM Mode2
-  HAL_TIM_Base_Start(&htim8);
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
+//  HAL_TIM_Base_Start(&htim8);
+//  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
 
   //Mode3 send UART to Matlab
   HAL_TIM_Base_Start_IT(&htim5);
@@ -179,10 +180,10 @@ int main(void)
   HAL_UART_Receive_DMA(&hlpuart1, get_Uart, 2);
 
   //QEI
-  HAL_TIM_Encoder_Start(&htim1,TIM_CHANNEL_ALL);
-
-  //Timer interrupt read position
-  HAL_TIM_Base_Start_IT(&htim2);
+//  HAL_TIM_Encoder_Start(&htim1,TIM_CHANNEL_ALL);
+//
+//  //Timer interrupt read position
+//  HAL_TIM_Base_Start_IT(&htim2);
 
 
   /* USER CODE END 2 */
@@ -625,11 +626,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 }
 
-void PWM_Mode1(uint16_t dut){ //Motor Control
+void PWM_Mode1(int dut){ //Motor Control
 	//PWM to Motor Output Compare
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
 
-	if(Vfeedback >= 0){   //Motor Rotate Forward (CW) Radiant Increase
+	if(VfeedbackM1 >= 0){   //Motor Rotate Forward (CW) Radiant Increase
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
 	}
@@ -639,15 +640,17 @@ void PWM_Mode1(uint16_t dut){ //Motor Control
 	}
 }
 
-void PWM_Mode2(uint16_t dut){ //Motor Control
+void PWM_Mode2(int dut){ //Motor Control
 	//PWM to Motor Output Compare
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
+//	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
 
-	if(Vfeedback >= 0){   //Motor Rotate Forward (CW) Radiant Increase
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
+	if(VfeedbackM2 >= 0){   //Motor Rotate Forward (CW) Radiant Increase
+//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
+//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
 	}
 	else{ //Motor Rotate Reverse Radiant decrease (CCW)
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
+//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, 0);
+//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, (int)((dut * 1000) / 100));
 	}
 }
 
@@ -696,16 +699,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 	}
 
-	if(htim == &htim2)
-	{
-		Read_setpoint_positionM1_Mode1();
-
-		//read position motor 2
-		QEIReadRaw = __HAL_TIM_GET_COUNTER(&htim1);
-		Raw_positionM2 += QEIReadRaw;
-		positionM2 = (Raw_positionM2*2*3.14)/3072;
-		__HAL_TIM_SET_COUNTER(&htim3, 0);
-	}
+//	if(htim == &htim2)
+//	{
+//		Read_setpoint_positionM1_Mode1();
+//
+//		//read position motor 2
+//		QEIReadRaw = __HAL_TIM_GET_COUNTER(&htim1);
+//		Raw_positionM2 += QEIReadRaw;
+//		positionM2 = (Raw_positionM2*2*3.14)/3072;
+//		__HAL_TIM_SET_COUNTER(&htim3, 0);
+//	}
 }
 
 //Receive UART from simulink
