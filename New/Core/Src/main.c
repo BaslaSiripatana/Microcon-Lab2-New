@@ -167,9 +167,9 @@ int main(void)
     arm_pid_init_f32(&PID1, 0);
 
     //PID Control M2
-    PID2.Kp = 0.5;
-    PID2.Ki = 0;
-    PID2.Kd = 0;
+    PID2.Kp = 0.6;
+    PID2.Ki = 0.000005;
+    PID2.Kd = 0.1;
     arm_pid_init_f32(&PID2, 0);
 
     //Output Compare for PWM Mode1
@@ -877,7 +877,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if(htim == &htim5 && mode == 3)
 	{
 		uint16_t pos = ADCBuffer[0]; // Your 16-bit number
-		uint16_t set_pos = ADCBuffer[1];
 		uint8_t header = 69; // ASCII value for 'E'
 		uint8_t terminator = '\n'; // Newline character
 
