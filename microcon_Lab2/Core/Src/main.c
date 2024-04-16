@@ -640,14 +640,14 @@ void PWM_Mode1(uint16_t dut){ //Motor Control
 }
 
 void PWM_Mode2(uint16_t dut){ //Motor Control
-	//PWM to Motor Output Compare
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
 
 	if(Vfeedback >= 0){   //Motor Rotate Forward (CW) Radiant Increase
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
 	}
 	else{ //Motor Rotate Reverse Radiant decrease (CCW)
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, (int)((dut * 1000) / 100));
 	}
 }
 
