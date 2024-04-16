@@ -56,6 +56,9 @@ DMA_HandleTypeDef hdma_lpuart1_tx;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim8;
 
 /* USER CODE BEGIN PV */
 
@@ -67,8 +70,10 @@ arm_pid_instance_f32 PID1 = {0};
 arm_pid_instance_f32 PID2 = {0};
 float positionM1 =0;
 float setpositionM1 = 0;
-float Vfeedback = 0;
-uint16_t positionM2 = 0;
+float VfeedbackM1 = 0;
+float VfeedbackM2 = 0;
+uint16_t Raw_positionM2 = 0;
+float positionM2 = 0;
 
 //For create PWM
 float duty_cycle = 0;
@@ -154,7 +159,7 @@ int main(void)
   arm_pid_init_f32(&PID1, 0);
 
   //PID Control
-  PID2.Kp = 1.9;
+  PID2.Kp = 0.5;
   PID2.Ki = 0;
   PID2.Kd = 0;
   arm_pid_init_f32(&PID2, 0);
@@ -176,6 +181,9 @@ int main(void)
   //QEI
   HAL_TIM_Encoder_Start(&htim1,TIM_CHANNEL_ALL);
 
+  //Timer interrupt read position
+  HAL_TIM_Base_Start_IT(&htim2);
+
 
   /* USER CODE END 2 */
 
@@ -196,7 +204,7 @@ int main(void)
 	  else if(mode == 2){ //Fualhaber
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 		  VfeedbackM2 = arm_pid_f32(&PID2, setpositionM1 - positionM2); //no more than 12V
-		  duty_cycle = fabs(VfeedbackM2) * 100/12; //0->12V to 0->100%
+		  duty_cycle = fabs(VfeedbackM2) * 100/5; //0->5V to 0->100%
 		  PWM_Mode1(0);
 		  PWM_Mode2(duty_cycle);
 	  }
@@ -692,11 +700,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		Read_setpoint_positionM1_Mode1();
 
-		QEIReadRaw = __HAL_TIM_GET_COUNTER(&htim3);
-		//spd =  QEIReadRaw * 1000 / 250 * 8; unused
-		positionM2 += QEIReadRaw;
+		//read position motor 2
+		QEIReadRaw = __HAL_TIM_GET_COUNTER(&htim1);
+		Raw_positionM2 += QEIReadRaw;
+		positionM2 = (Raw_positionM2*2*3.14)/3072;
 		__HAL_TIM_SET_COUNTER(&htim3, 0);
-		//VfeedbackM2 = (arm_pid_f32(&PID, set_pos - pos) * 1000);
 	}
 }
 
