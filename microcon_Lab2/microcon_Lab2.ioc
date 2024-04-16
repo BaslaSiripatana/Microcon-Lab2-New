@@ -318,3 +318,6 @@ VP_TIM5_VS_ClockSourceINT.Signal=TIM5_VS_ClockSourceINT
 board=NUCLEO-G474RE
 boardIOC=true
 isbadioc=false
+isbadioc=false
+isbadioc=false
+isbadioc=false
