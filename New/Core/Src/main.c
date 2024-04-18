@@ -224,6 +224,7 @@ int main(void)
 	  		  PWM_Mode2(duty_cycle);
 	  	  }
 	  	  else if(mode == 3){
+	  		  //Toggle light
 	  		  if(timestamp<=HAL_GetTick())
 	  		  {
 	  			timestamp = HAL_GetTick() + 500; //ms
@@ -895,7 +896,7 @@ void Read_setpoint_positionM2_Mode2(){
 	}
 	old_QEI_M2 = QEIReadRaw;
 
-	positionM2 = (QEIReadRaw + 3072*n_round_M2)*2*3.14/3072;
+	positionM2 = (QEIReadRaw + 3072*n_round_M2)*2*3.14/3072; //rad
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -919,9 +920,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		buffer[2] = lowByte_pos;
 		buffer[3] = terminator;
 
-		// Transmit data over UART
+		// Transmit data over UART (Polling)
 		HAL_UART_Transmit(&hlpuart1, buffer, sizeof(buffer), 10);
-
 	}
 
 	if(htim == &htim2)
@@ -944,12 +944,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	{
 		Raw_Vin = (int16_t)get_Uart[0] << 8;
 		Raw_Vin |= (uint8_t)get_Uart[1];
-		if(Raw_Vin == 4095){
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, 0);
-		}
-		else{
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, 1);
-		}
 	}
 }
 /* USER CODE END 4 */

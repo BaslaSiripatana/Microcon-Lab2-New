@@ -641,6 +641,7 @@ void PWM_Mode1(int dut){ //Motor Control
 	}
 }
 
+<<<<<<< HEAD
 void PWM_Mode2(int dut){ //Motor Control
 	//PWM to Motor Output Compare
 //	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
@@ -652,6 +653,17 @@ void PWM_Mode2(int dut){ //Motor Control
 	else{ //Motor Rotate Reverse Radiant decrease (CCW)
 //		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, 0);
 //		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, (int)((dut * 1000) / 100));
+=======
+void PWM_Mode2(uint16_t dut){ //Motor Control
+
+	if(Vfeedback >= 0){   //Motor Rotate Forward (CW) Radiant Increase
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (int)((dut * 1000) / 100));
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
+	}
+	else{ //Motor Rotate Reverse Radiant decrease (CCW)
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, (int)((dut * 1000) / 100));
+>>>>>>> 20d3c1a5c4401086950a89dfbd86bb1d8ac00634
 	}
 }
 
