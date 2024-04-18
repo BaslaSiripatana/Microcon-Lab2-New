@@ -210,6 +210,7 @@ int main(void)
 		  PWM_Mode2(duty_cycle);
 	  }
 	  else if(mode == 3){
+
 		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 	  }
 	  else if(mode == 4){

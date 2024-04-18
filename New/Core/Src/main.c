@@ -89,6 +89,11 @@ uint8_t mode = 1;  //mode1->motor control    mode2->faulhaber
 
 //Receive Vin from simulink
 int8_t get_Uart[2];
+int16_t Raw_Vin = 0;
+
+uint16_t pos = 0;
+
+static uint32_t timestamp = 0;
 
 /* USER CODE END PV */
 
@@ -161,15 +166,15 @@ int main(void)
     HAL_TIM_Base_Start(&htim3);
 
     //PID Control M1
-    PID1.Kp = 1.9;
-    PID1.Ki = 0;
-    PID1.Kd = 0;
+    PID1.Kp = 0.2;
+    PID1.Ki = 0.000005;
+    PID1.Kd = 0.1;
     arm_pid_init_f32(&PID1, 0);
 
     //PID Control M2
     PID2.Kp = 0.6;
-    PID2.Ki = 0.000005;
-    PID2.Kd = 0.1;
+    PID2.Ki = 0.000001;
+    PID2.Kd = 0.01;
     arm_pid_init_f32(&PID2, 0);
 
     //Output Compare for PWM Mode1
@@ -205,7 +210,7 @@ int main(void)
 	  	  if(mode == 1){ //motor control 12V
 	  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
 	  		  VfeedbackM1 = arm_pid_f32(&PID1, setpositionM1 - positionM1); //no more than 12V
-	  		  //VfeedbackM1 = -5;
+	  		  //VfeedbackM1 = 0;
 	  		  duty_cycle = fabs(VfeedbackM1) * 100/12; //0->12V to 0->100%
 	  		  PWM_Mode1(duty_cycle);
 	  		  PWM_Mode2(0);
@@ -219,7 +224,18 @@ int main(void)
 	  		  PWM_Mode2(duty_cycle);
 	  	  }
 	  	  else if(mode == 3){
-	  		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	  		  if(timestamp<=HAL_GetTick())
+	  		  {
+	  			timestamp = HAL_GetTick() + 500; //ms
+	  			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	  		  }
+	  		  VfeedbackM1 = (Raw_Vin*12)/4095; //0->4095 to 0-12V
+	  		  if(fabs(3.14 - positionM1)<2){
+	  			VfeedbackM1 = 0;
+	  		  }
+	  		  duty_cycle = fabs(VfeedbackM1) * 100/12; //0->12V to 0->100%
+	  		  PWM_Mode1(duty_cycle);
+	  		  PWM_Mode2(0);
 	  	  }
   }
   /* USER CODE END 3 */
@@ -556,7 +572,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 169;
+  htim4.Init.Prescaler = 16999;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 999;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -768,6 +784,9 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_8, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -778,6 +797,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PC3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD2_Pin PA8 */
   GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_8;
@@ -819,12 +845,12 @@ void PWM_Mode1(int dut){ //Motor Control
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, dut*10);
 
 	if(VfeedbackM1 >= 0){   //Motor Rotate Forward (CW) Radiant Increase
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
-	}
-	else{ //Motor Rotate Reverse Radiant decrease (CCW)
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+	}
+	else{ //Motor Rotate Reverse Radiant decrease (CCW)
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
 	}
 }
 
@@ -876,7 +902,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim == &htim5 && mode == 3)
 	{
-		uint16_t pos = ADCBuffer[0]; // Your 16-bit number
+		pos = ADCBuffer[0] + 4095*n_round + 32768; // Your 16-bit number
+		//pos = Raw_Vin + 32768;
 		uint8_t header = 69; // ASCII value for 'E'
 		uint8_t terminator = '\n'; // Newline character
 
@@ -886,7 +913,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 
 		// Prepare buffer to hold header, two 8-bit parts, and terminator
-		uint8_t buffer[5];
+		uint8_t buffer[4];
 		buffer[0] = header;
 		buffer[1] = highByte_pos;
 		buffer[2] = lowByte_pos;
@@ -915,7 +942,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &hlpuart1)
 	{
-
+		Raw_Vin = (int16_t)get_Uart[0] << 8;
+		Raw_Vin |= (uint8_t)get_Uart[1];
+		if(Raw_Vin == 4095){
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, 0);
+		}
+		else{
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, 1);
+		}
 	}
 }
 /* USER CODE END 4 */
